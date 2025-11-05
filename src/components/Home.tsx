@@ -98,10 +98,10 @@ const Home = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center   ">
-      <div className="bg-white rounded-2xl shadow-lg p-6 w-full max-w-2xl">
-        <h1 className="text-4xl font-bold text-gray-800 mb-3 text-center">
-          Welcome to <span className="text-red-600">What will be, your Next Movie</span>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-zinc-900">
+      <div className="bg-zinc-900 rounded-2xl shadow-lg p-6 w-full max-w-2xl border border-gray-500">
+        <h1 className="text-4xl font-bold text-white mb-3 text-center">
+          Welcome to <span className="text-red-400">What will be, My Next Movie</span>
         </h1>
 
         <AsyncSelect
@@ -110,13 +110,32 @@ const Home = () => {
           loadOptions={loadMovieOptions}
           onChange={(v) => setSelectedMovie(v as MovieOption)}
           placeholder="🔍 Search or select a movie..."
-          className="mb-4 text-gray-800"
+          className="mb-4 text-gray-900"
           styles={{
             control: (base) => ({
               ...base,
-              borderRadius: "0.75rem",
+              borderRadius: "0.85rem",
               borderColor: "#ef4444",
-              padding: "4px",
+              padding: "10px",
+              backgroundColor: "#18181b",
+              color: "#f3f4f6"
+            }),
+            singleValue: (base) => ({
+              ...base,
+              color: "#f3f4f6"
+            }),
+            input: (base) => ({
+              ...base,
+              color: "#f3f4f6"
+            }),
+            menu: (base) => ({
+              ...base,
+              backgroundColor: "#27272a"
+            }),
+            option: (base, state) => ({
+              ...base,
+              color: state.isSelected ? "#fff" : "#f3f4f6",
+              backgroundColor: state.isSelected ? "#b91c1c" : (state.isFocused ? "#27272a" : "inherit")
             }),
           }}
           isClearable
@@ -125,16 +144,16 @@ const Home = () => {
         <button
           onClick={handleRecommend}
           disabled={!selectedMovie}
-          className="w-full bg-red-500 text-white py-2 rounded-2xl hover:bg-red-600 transition font-semibold disabled:opacity-50 mt-2"
+          className="w-full bg-red-500 text-white py-4 rounded-2xl hover:bg-red-600 transition font-semibold disabled:opacity-50 mt-2"
         >
            Get Recommendations
         </button>
 
         {recommendations.length > 0 && (
-          <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">
+          <div className="mt-6 bg-zinc-800 border border-gray-700 rounded-lg p-4">
+            <h2 className="text-lg font-semibold text-white mb-4">
               Recommended for:{" "}
-              <span className="text-red-600">{selectedMovie ? selectedMovie.label : ""}</span>
+              <span className="text-red-400">{selectedMovie ? selectedMovie.label : ""}</span>
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {recommendations.map((m, i) => (
@@ -149,9 +168,9 @@ const Home = () => {
                     src={moviePosters[m] || "https://via.placeholder.com/300x450?text=No+Image"}
                     alt={m}
                     loading="lazy"
-                    className="w-full h-60 object-contain rounded-md mb-2 bg-white"
+                    className="w-full h-60 object-contain rounded-md mb-2 bg-zinc-900 border border-zinc-700"
                   />
-                  <p className="text-gray-700 text-sm">{m}</p>
+                  <p className="text-gray-300 text-sm">{m}</p>
                 </motion.div>
               ))}
             </div>

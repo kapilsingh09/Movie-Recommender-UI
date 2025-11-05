@@ -5,7 +5,7 @@ import "./App.css";
 function App() {
   return (
     <div
-      className="flex flex-col min-h-screen bg-zinc-900 text-gray-900 font-sans"
+      className="flex flex-col h-full  bg-zinc-900 text-gray-900 font-sans bg-zinc-900"
       style={{ scrollBehavior: "smooth" }}
     >
       {/* Navbar */}
@@ -31,7 +31,7 @@ function App() {
       {/* Main content */}
       <main className="flex-grow flex items-center justify-center px-6 ">
         <div
-          className="w-full max-w-4xl   bg-zinc-100 rounded-3xl shadow-lg border border-gray-300 p-10"
+          className="w-full max-w-4xl   bg-zinc-900 rounded-3xl shadow-lg   p-10"
         >
           {/* Added a Film icon for decoration next to the Home heading */}
           <div className="flex items-center mb-6 gap-2">
