@@ -1,11 +1,11 @@
-import { Github, Clapperboard, Film, Flame } from "lucide-react";
+import { Github, Clapperboard } from "lucide-react";
 import Home from "./components/Home";
 import "./App.css";
 
 function App() {
   return (
     <div
-      className="flex flex-col h-full  bg-zinc-900 text-gray-900 font-sans bg-zinc-900"
+      className="flex flex-col h-full  bg-zinc-900 text-gray-900 font-sans "
       style={{ scrollBehavior: "smooth" }}
     >
       {/* Navbar */}
