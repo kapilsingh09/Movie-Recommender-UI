@@ -98,7 +98,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-zinc-900">
+    <div className="h-[82vh] w-full flex flex-col items-center justify-center  rounded-2xl  shadow-lg p-6">
       <div className="bg-zinc-900 rounded-2xl shadow-lg p-6 w-full max-w-2xl border border-gray-500">
         <h1 className="text-4xl font-bold text-white mb-3 text-center">
           Welcome to <span className="text-red-400">What will be, My Next Movie</span>
