@@ -10,7 +10,7 @@ function App() {
     >
       {/* Navbar */}
       <nav className="sticky top-0 z-50 bg-gray-800 text-white shadow">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-6 py-4.5 flex justify-between items-center">
           <div className="flex items-center gap-2 text-2xl font-bold select-none">
             <Clapperboard size={28} className="text-yellow-400" />
             My Next Movie
@@ -29,7 +29,7 @@ function App() {
       </nav>
 
       {/* Main content */}
-      <main className="flex-grow flex items-center justify-center px-6 ">
+      <main className="flex-grow flex items-center justify-center px-6 mb-4">
         <div
           className="w-full max-w-4xl   bg-zinc-900 rounded-3xl shadow-lg   p-10"
         >
@@ -42,7 +42,7 @@ function App() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-4 shadow-inner">
+      <footer className="bg-gray-900 text-gray-300 py-4.5  shadow-inner">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center text-sm">
           <p className="select-none mb-2 sm:mb-0 flex items-center gap-2">
             <Clapperboard size={16} className="text-yellow-400" />
@@ -56,7 +56,7 @@ function App() {
             aria-label="Footer GitHub Link"
           >
             <Github size={18} />
-            <span>GitHub</span>
+            <span>Source code</span>
           </a>
         </div>
       </footer>
