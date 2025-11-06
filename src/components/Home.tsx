@@ -1,77 +1,48 @@
 import { useEffect, useState } from "react";
 import AsyncSelect from "react-select/async";
-import { motion } from "framer-motion";
-import { API_BASE, fetchJson } from "../lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { Film, Sparkles, Star, TrendingUp } from "lucide-react";
 
 type MovieInfo = { posterUrl: string; tmdbLink: string };
-type MoviePosters = Record<string, MovieInfo>;
-
 type MovieOption = { label: string; value: string };
 
-// 🔄 Simple Loading Spinner Component (using Tailwind CSS)
-const LoadingSpinner = () => (
-  <div className="flex justify-center items-center py-12">
-    <svg
-      className="animate-spin h-8 w-8 text-red-500"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      ></circle>
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      ></path>
-    </svg>
-    <p className="ml-3 text-red-400 font-medium">Fetching recommendations...</p>
-  </div>
-);
+const fetchJson = async <T,>(url: string): Promise<T> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Network error");
+  return res.json();
+};
 
 const Home = () => {
   const [movies, setMovies] = useState<string[]>([]);
-  const [moviePosters, setMoviePosters] = useState<MoviePosters>({});
+  const [moviePosters, setMoviePosters] = useState<Record<string, MovieInfo>>({});
   const [selectedMovie, setSelectedMovie] = useState<MovieOption | null>(null);
   const [recommendations, setRecommendations] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false); // Used for initial movie list fetch
-  const [recommendationLoading, setRecommendationLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [skip, setSkip] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const TMDB_API_KEY = "8265bd1679663a7ea12ac168da84d2e8";
 
-  const fetchMovies = async () => {
-    if (loading || !hasMore) return;
-    setLoading(true);
-    try {
-      const data = await fetchJson<{ data: string[]; has_more: boolean }>(
-        `https://movie-recommender-server-5.onrender.com/movies/all?skip=${skip}&limit=50`
-      );
-      const newMovies: string[] = data.data || [];
-      setMovies((prev) => [...prev, ...newMovies]);
-      setHasMore(data.has_more);
-      setSkip(skip + 50);
-      await fetchPostersBatch(newMovies);
-    } catch (err) {
-      console.error("Error fetching movies:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const loadMovies = async () => {
+      setSearchLoading(true);
+      try {
+        const data = await fetchJson<{ data: string[] }>(
+          `https://movie-recommender-server-5.onrender.com/movies/all?skip=0&limit=100`
+        );
+        setMovies(data.data || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+    loadMovies();
+  }, []);
 
-  const fetchPostersBatch = async (movieTitles: string[]) => {
-    const uncached = movieTitles.filter((m) => !moviePosters[m]);
-    const results: Record<string, MovieInfo> = {};
-
+  const fetchPostersBatch = async (titles: string[]) => {
+    const newInfo: Record<string, MovieInfo> = {};
     await Promise.all(
-      uncached.map(async (title) => {
+      titles.map(async (title) => {
         try {
           const res = await fetch(
             `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(
@@ -79,224 +50,264 @@ const Home = () => {
             )}`
           );
           const data = await res.json();
-          const movieResult = data.results?.[0];
-          const posterPath = movieResult?.poster_path;
-          const movieId = movieResult?.id;
-
-          const defaultInfo: MovieInfo = {
-            posterUrl: "https://via.placeholder.com/300x450?text=No+Image",
-            tmdbLink: "#",
-          };
-
-          if (posterPath && movieId) {
-            results[title] = {
-              posterUrl: `https://image.tmdb.org/t/p/w500${posterPath}`,
-              tmdbLink: `https://www.themoviedb.org/movie/${movieId}`,
+          const movie = data.results?.[0];
+          if (movie?.poster_path) {
+            newInfo[title] = {
+              posterUrl: `https://image.tmdb.org/t/p/w500${movie.poster_path}`,
+              tmdbLink: `https://www.themoviedb.org/movie/${movie.id}`,
             };
           } else {
-            results[title] = defaultInfo;
+            newInfo[title] = {
+              posterUrl: "https://via.placeholder.com/300x450?text=No+Image",
+              tmdbLink: "#",
+            };
           }
-        } catch (err) {
-          console.error(`Error fetching TMDB info for ${title}:`, err);
-          results[title] = {
+        } catch {
+          newInfo[title] = {
             posterUrl: "https://via.placeholder.com/300x450?text=No+Image",
             tmdbLink: "#",
           };
         }
       })
     );
-
-    setMoviePosters((prev) => ({ ...prev, ...results }));
+    setMoviePosters((prev) => ({ ...prev, ...newInfo }));
   };
 
-  useEffect(() => {
-    fetchMovies();
-    document.title = "My Next Movie";
-  }, []);
-
-  const defaultMovieOptions: MovieOption[] = movies.slice(0, 50).map((title) => ({
-    label: title,
-    value: title,
-  }));
-
-  const loadMovieOptions = async (
-    inputValue: string
-  ): Promise<MovieOption[]> => {
-    if (!inputValue) return defaultMovieOptions;
+  const loadMovieOptions = async (input: string) => {
+    if (!input) return movies.slice(0, 50).map((t) => ({ label: t, value: t }));
     try {
       const data = await fetchJson<string[]>(
-        `https://movie-recommender-server-5.onrender.com/movies/search?q=${encodeURIComponent(inputValue)}`
+        `https://movie-recommender-server-5.onrender.com/movies/search?q=${encodeURIComponent(
+          input
+        )}`
       );
-      if (!Array.isArray(data) || data.length === 0)
-        return defaultMovieOptions;
       return data.map((title) => ({ label: title, value: title }));
     } catch {
-      return defaultMovieOptions;
+      return [];
     }
   };
 
   const handleRecommend = async () => {
     if (!selectedMovie) return;
-    setRecommendationLoading(true); 
+    setLoading(true);
     setRecommendations([]);
     try {
-      const data = await fetchJson<{ recommendations?: string[] }>(
-        `https://movie-recommender-server-5.onrender.com/recommend/${encodeURIComponent(selectedMovie.value)}`
+      const data = await fetchJson<{ recommendations: string[] }>(
+        `https://movie-recommender-server-5.onrender.com/recommend/${encodeURIComponent(
+          selectedMovie.value
+        )}`
       );
-      const newRecommendations = Array.isArray(data.recommendations) ? data.recommendations : [];
-
-      setRecommendations(newRecommendations);
-      await fetchPostersBatch(newRecommendations);
+      const recs = data.recommendations || [];
+      setRecommendations(recs);
+      await fetchPostersBatch(recs);
     } catch (err) {
       console.error("Error fetching recommendations:", err);
     } finally {
-      setRecommendationLoading(false); 
+      setLoading(false);
     }
   };
 
-  // Helper to get movie info safely
-  const getMovieInfo = (title: string): MovieInfo => {
-    return moviePosters[title] || {
+  const getMovieInfo = (title: string) =>
+    moviePosters[title] || {
       posterUrl: "https://via.placeholder.com/300x450?text=No+Image",
       tmdbLink: "#",
     };
-  };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-950 to-zinc-900 p-4 sm:p-6">
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8 w-full max-w-2xl border border-zinc-700/50 backdrop-blur-xl">
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-center mb-6 sm:mb-8 leading-tight text-white">
-          Welcome to{" "}
-          <span className="bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent">
-            My Next Movie
-          </span>
-        </h1>
+    <div className="min-h-screen w-full bg-black text-white overflow-x-hidden">
+      {/* Subtle background gradient */}
+      <div className="fixed inset-0 bg-gradient-to-br from-black via-zinc-900 to-black" />
 
-        <AsyncSelect
-          cacheOptions
-          defaultOptions={defaultMovieOptions}
-          loadOptions={loadMovieOptions}
-          onChange={(v) => setSelectedMovie(v as MovieOption)}
-          placeholder="🔍 Search or select a movie..."
-          className="mb-6 text-white"
-          // styles remain the same
-          styles={{
-            control: (base) => ({
-              ...base,
-              borderRadius: "1rem",
-              borderColor: "transparent",
-              padding: "8px",
-              backgroundColor: "rgba(24, 24, 27, 0.85)",
-              boxShadow:
-                "0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)",
-              "&:hover": { borderColor: "#ef4444" },
-            }),
-            singleValue: (base) => ({ ...base, color: "#f3f4f6" }),
-            input: (base) => ({ ...base, color: "#f3f4f6" }),
-            menu: (base) => ({
-              ...base,
-              backgroundColor: "rgba(39, 39, 42, 0.98)",
-              backdropFilter: "blur(8px)",
-              border: "1px solid rgba(255, 255, 255, 0.1)",
-              borderRadius: "0.75rem",
-              boxShadow:
-                "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-            }),
-            option: (base, state) => ({
-              ...base,
-              color: state.isSelected ? "#fff" : "#f3f4f6",
-              backgroundColor: state.isSelected
-                ? "#dc2626"
-                : state.isFocused
-                ? "rgba(239, 68, 68, 0.1)"
-                : "transparent",
-              transition: "all 0.2s ease",
-              cursor: "pointer",
-              "&:active": { backgroundColor: "#dc2626" },
-            }),
-          }}
-          isClearable
-        />
+      <div className="relative z-10 container mx-auto px-4 py-8 sm:py-16">
+        {/* Header Section */}
+      
 
-        <button
-          onClick={handleRecommend}
-          // Button is disabled when no movie is selected OR when recommendations are loading
-          disabled={!selectedMovie || recommendationLoading}
-          className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white py-3 sm:py-4 rounded-xl hover:from-red-500 hover:to-red-600 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-red-500/20 flex items-center justify-center"
+        {/* Main Card */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="max-w-5xl mx-auto"
         >
-          {recommendationLoading ? (
-            <>
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Getting Movies...
-            </>
-          ) : !selectedMovie ? (
-            "Select a movie first"
-          ) : (
-            "Get Recommendations"
-          )}
-        </button>
+          <div className="bg-zinc-900/70 backdrop-blur-xl border border-zinc-800 rounded-3xl shadow-xl p-8 sm:p-10">
+            {/* Search Section */}
+            <div className="flex items-center justify-center gap-3 mb-4">
+            {/* <Film className="w-10 h-10 sm:w-12 sm:h-12 text-red-500" /> */}
+           <h1 className="text-4xl sm:text-4xl md:text-6xl font-black tracking-tight">
+  What will be your{" "}
+  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-red-600 to-red-700">
+    Next Movie?
+  </span>
+</h1>
 
-        {recommendationLoading ? (
-          <LoadingSpinner />
-        ) : recommendations.length > 0 ? (
-          <div className="mt-8 sm:mt-10 bg-zinc-800/60 backdrop-blur-sm border border-zinc-700/50 rounded-2xl p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl font-semibold text-white mb-4 sm:mb-6 text-center">
-              Recommended for:{" "}
-              <span className="text-red-400 font-bold truncate">
-                {selectedMovie?.label}
-              </span>
-            </h2>
-            {/* Grid of movie posters */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              {recommendations.map((m, i) => {
-                const info = getMovieInfo(m);
-                return (
-                  <motion.div
-                    key={i}
-                    className="group relative text-center overflow-hidden"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                  >
-                    <a
-                      href={info.tmdbLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="aspect-[2/3] relative overflow-hidden rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 block cursor-pointer"
-                    >
-                      <img
-                        src={info.posterUrl}
-                        alt={m}
-                        loading="lazy"
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-3">
-                        <span className="text-white text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-2 group-hover:translate-y-0">
-                          View Details
-                        </span>
-                      </div>
-                    </a>
-                    <p className="mt-2 text-gray-300 text-sm font-medium truncate px-1 group-hover:text-white transition-colors duration-300">
-                      {m}
-                    </p>
-                  </motion.div>
-                );
-              })}
+          </div>
+            <div className="mb-8">
+              <label className="block text-sm font-semibold ml-1 text-gray-300 mb-3 flex items-center gap-2">
+                {/* <Sparkles className="w-4 h-4 text-red-500" /> */}
+                Select a Movie
+              </label>
+              <AsyncSelect
+                cacheOptions
+                defaultOptions={movies.slice(0, 50).map((t) => ({ label: t, value: t }))}
+                loadOptions={loadMovieOptions}
+                onChange={(v) => setSelectedMovie(v as MovieOption)}
+                placeholder="Search for a movie..."
+                className="text-white"
+                isLoading={searchLoading}
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    borderRadius: "1rem",
+                    backgroundColor: "#09090b",
+                    border: state.isFocused ? "1.5px solid #dc2626" : "1.5px solid #27272a",
+                    padding: "0.5rem",
+                    transition: "all 0.2s ease",
+                  }),
+                  singleValue: (b) => ({ ...b, color: "#f3f4f6" }),
+                  input: (b) => ({ ...b, color: "#f3f4f6" }),
+                  placeholder: (b) => ({ ...b, color: "#71717a" }),
+                  menu: (b) => ({
+                    ...b,
+                    backgroundColor: "#18181b",
+                    borderRadius: "1rem",
+                    border: "1px solid #27272a",
+                  }),
+                  option: (b, s) => ({
+                    ...b,
+                    color: s.isSelected ? "#fff" : "#e4e4e7",
+                    backgroundColor: s.isSelected
+                      ? "#dc2626"
+                      : s.isFocused
+                      ? "#27272a"
+                      : "transparent",
+                    padding: "0.75rem 1rem",
+                  }),
+                }}
+                isClearable
+              />
             </div>
+
+            {/* Button */}
+            <button
+              onClick={handleRecommend}
+              disabled={!selectedMovie || loading}
+              className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-semibold py-4 rounded-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-2 text-lg"
+            >
+              {loading ? (
+                <>
+                  <svg
+                    className="animate-spin h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Finding Perfect Matches...
+                </>
+              ) : (
+                <>
+                  <TrendingUp className="w-5 h-5" />
+                  Get Recommendations
+                </>
+              )}
+            </button>
+
+            {/* Results Section */}
+            <AnimatePresence mode="wait">
+              {loading && (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="mt-10 text-center"
+                >
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 border-4 border-zinc-700 border-t-red-500 rounded-full animate-spin"></div>
+                    <p className="text-gray-400 text-base">Analyzing your taste...</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {!loading && recommendations.length > 0 && (
+                <motion.div
+                  key="results"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="mt-12"
+                >
+                  <div className="text-center mb-8">
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+                      Perfect Matches for{" "}
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-red-700">
+                        {selectedMovie?.label}
+                      </span>
+                    </h2>
+                    <p className="text-gray-500 text-sm">Handpicked just for you</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+                    {recommendations.map((m, i) => {
+                      const info = getMovieInfo(m);
+                      return (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.3, delay: i * 0.05 }}
+                        >
+                          <a
+                            href={info.tmdbLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block relative rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all duration-300"
+                          >
+                            <img
+                              src={info.posterUrl}
+                              alt={m}
+                              loading="lazy"
+                              className="w-full aspect-[2/3] object-cover hover:scale-105 transition-transform duration-500"
+                            />
+                          </a>
+                          <p className="text-gray-300 text-xs sm:text-sm font-medium mt-3 text-center line-clamp-2">
+                            {m}
+                          </p>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        ) : (
-          <div className="mt-8 text-center text-gray-400">
-            {selectedMovie && !recommendationLoading && (
-              <p>No recommendations found for {selectedMovie.label}. Try a different movie!</p>
-            )}
-          </div>
-        )}
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="text-center mt-12 text-gray-600 text-sm"
+        >
+          <p>Powered by ML — Now featuring (4806, 7) dimensions of entertainment</p>
+        </motion.div>
       </div>
     </div>
   );
-};
+}; 
 
 export default Home;
