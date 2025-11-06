@@ -20,7 +20,7 @@ const Home = () => {
     setLoading(true);
     try {
       const data = await fetchJson<{ data: string[]; has_more: boolean }>(
-        `${API_BASE}/movies/all?skip=${skip}&limit=50`
+        `https://movie-recommender-server-5.onrender.com/movies/all?skip=${skip}&limit=50`
       );
       const newMovies: string[] = data.data || [];
       setMovies((prev) => [...prev, ...newMovies]);
@@ -83,7 +83,7 @@ const Home = () => {
     if (!inputValue) return defaultMovieOptions;
     try {
       const data = await fetchJson<string[]>(
-        `${API_BASE}/movies/search?q=${encodeURIComponent(inputValue)}`
+        `https://movie-recommender-server-5.onrender.com/movies/search?q=${encodeURIComponent(inputValue)}`
       );
       if (!Array.isArray(data) || data.length === 0)
         return defaultMovieOptions;
@@ -97,7 +97,7 @@ const Home = () => {
     if (!selectedMovie) return;
     try {
       const data = await fetchJson<{ recommendations?: string[] }>(
-        `${API_BASE}/recommend/${encodeURIComponent(selectedMovie.value)}`
+        `https://movie-recommender-server-5.onrender.com/recommend/${encodeURIComponent(selectedMovie.value)}`
       );
       setRecommendations(
         Array.isArray(data.recommendations)
