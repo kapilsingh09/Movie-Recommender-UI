@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AsyncSelect from "react-select/async";
 import { motion } from "framer-motion";
+import { API_BASE, fetchJson } from "../lib/api";
 
 type MovieOption = { label: string; value: string };
 type MoviePosters = Record<string, string>;
@@ -18,8 +19,9 @@ const Home = () => {
     if (loading || !hasMore) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/movies/all?skip=${skip}&limit=50`);
-      const data = await res.json();
+      const data = await fetchJson<{ data: string[]; has_more: boolean }>(
+        `${API_BASE}/movies/all?skip=${skip}&limit=50`
+      );
       const newMovies: string[] = data.data || [];
       setMovies((prev) => [...prev, ...newMovies]);
       setHasMore(data.has_more);
@@ -46,13 +48,17 @@ const Home = () => {
           );
           const data = await res.json();
           const posterPath = data.results?.[0]?.poster_path;
+          console.log(data);
+          
           if (posterPath) {
             results[title] = `https://image.tmdb.org/t/p/w500${posterPath}`;
           } else {
-            results[title] = "https://via.placeholder.com/300x450?text=No+Image";
+            results[title] =
+              "https://via.placeholder.com/300x450?text=No+Image";
           }
         } catch {
-          results[title] = "https://via.placeholder.com/300x450?text=No+Image";
+          results[title] =
+            "https://via.placeholder.com/300x450?text=No+Image";
         }
       })
     );
@@ -71,12 +77,16 @@ const Home = () => {
     value: title,
   }));
 
-  const loadMovieOptions = async (inputValue: string): Promise<MovieOption[]> => {
+  const loadMovieOptions = async (
+    inputValue: string
+  ): Promise<MovieOption[]> => {
     if (!inputValue) return defaultMovieOptions;
     try {
-      const res = await fetch(`/movies/search?q=${encodeURIComponent(inputValue)}`);
-      const data: string[] = await res.json();
-      if (!Array.isArray(data) || data.length === 0) return defaultMovieOptions;
+      const data = await fetchJson<string[]>(
+        `${API_BASE}/movies/search?q=${encodeURIComponent(inputValue)}`
+      );
+      if (!Array.isArray(data) || data.length === 0)
+        return defaultMovieOptions;
       return data.map((title) => ({ label: title, value: title }));
     } catch {
       return defaultMovieOptions;
@@ -86,11 +96,14 @@ const Home = () => {
   const handleRecommend = async () => {
     if (!selectedMovie) return;
     try {
-      const res = await fetch(
-        `/recommend/${encodeURIComponent(selectedMovie.value)}`
+      const data = await fetchJson<{ recommendations?: string[] }>(
+        `${API_BASE}/recommend/${encodeURIComponent(selectedMovie.value)}`
       );
-      const data = await res.json();
-      setRecommendations(Array.isArray(data.recommendations) ? data.recommendations : []);
+      setRecommendations(
+        Array.isArray(data.recommendations)
+          ? data.recommendations
+          : []
+      );
       await fetchPostersBatch(data.recommendations || []);
     } catch (err) {
       console.error("Error fetching recommendations:", err);
@@ -98,10 +111,13 @@ const Home = () => {
   };
 
   return (
-    <div className="h-[82vh] w-full min-h-screen flex flex-col items-center justify-center p-6">
-      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl shadow-2xl p-8 w-full max-w-2xl border border-zinc-700/50 backdrop-blur-sm">
-        <h1 className="text-4xl font-bold text-white mb-6 text-center leading-tight">
-          Welcome to <span className="bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent">What will be, My Next Movie</span>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-950 to-zinc-900 p-6">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-3xl shadow-2xl p-8 w-full max-w-2xl border border-zinc-700/50 backdrop-blur-xl">
+        <h1 className="text-4xl sm:text-5xl font-extrabold text-center mb-8 leading-tight text-white">
+          Welcome to{" "}
+          <span className="bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent">
+            My Next Movie
+          </span>
         </h1>
 
         <AsyncSelect
@@ -110,45 +126,40 @@ const Home = () => {
           loadOptions={loadMovieOptions}
           onChange={(v) => setSelectedMovie(v as MovieOption)}
           placeholder="🔍 Search or select a movie..."
-          className="mb-6"
+          className="mb-6 text-white"
           styles={{
             control: (base) => ({
               ...base,
               borderRadius: "1rem",
               borderColor: "transparent",
               padding: "8px",
-              backgroundColor: "rgba(24, 24, 27, 0.8)",
-              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-              "&:hover": {
-                borderColor: "#ef4444"
-              }
+              backgroundColor: "rgba(24, 24, 27, 0.85)",
+              boxShadow:
+                "0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1)",
+              "&:hover": { borderColor: "#ef4444" },
             }),
-            singleValue: (base) => ({
-              ...base,
-              color: "#f3f4f6"
-            }),
-            input: (base) => ({
-              ...base,
-              color: "#f3f4f6"
-            }),
+            singleValue: (base) => ({ ...base, color: "#f3f4f6" }),
+            input: (base) => ({ ...base, color: "#f3f4f6" }),
             menu: (base) => ({
               ...base,
-              backgroundColor: "rgba(39, 39, 42, 0.95)",
+              backgroundColor: "rgba(39, 39, 42, 0.98)",
               backdropFilter: "blur(8px)",
               border: "1px solid rgba(255, 255, 255, 0.1)",
               borderRadius: "0.75rem",
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
+              boxShadow:
+                "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
             }),
             option: (base, state) => ({
               ...base,
               color: state.isSelected ? "#fff" : "#f3f4f6",
-              backgroundColor: state.isSelected ? "#dc2626" : 
-                (state.isFocused ? "rgba(239, 68, 68, 0.1)" : "transparent"),
+              backgroundColor: state.isSelected
+                ? "#dc2626"
+                : state.isFocused
+                ? "rgba(239, 68, 68, 0.1)"
+                : "transparent",
               transition: "all 0.2s ease",
               cursor: "pointer",
-              "&:active": {
-                backgroundColor: "#dc2626"
-              }
+              "&:active": { backgroundColor: "#dc2626" },
             }),
           }}
           isClearable
@@ -157,16 +168,18 @@ const Home = () => {
         <button
           onClick={handleRecommend}
           disabled={!selectedMovie}
-          className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white py-4 rounded-xl hover:from-red-500 hover:to-red-600 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-red-600 disabled:hover:to-red-500 mt-2 shadow-lg shadow-red-500/20"
+          className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white py-4 rounded-xl hover:from-red-500 hover:to-red-600 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed mt-2 shadow-lg shadow-red-500/20"
         >
           {!selectedMovie ? "Select a movie first" : "Get Recommendations"}
         </button>
 
         {recommendations.length > 0 && (
-          <div className="mt-8 bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-6">
+          <div className="mt-10 bg-zinc-800/60 backdrop-blur-sm border border-zinc-700/50 rounded-2xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 text-center">
               Recommended for:{" "}
-              <span className="text-red-400 font-bold">{selectedMovie ? selectedMovie.label : ""}</span>
+              <span className="text-red-400 font-bold">
+                {selectedMovie?.label}
+              </span>
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
               {recommendations.map((m, i) => (
@@ -179,20 +192,26 @@ const Home = () => {
                 >
                   <div className="aspect-[2/3] relative overflow-hidden rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
                     <img
-                      src={moviePosters[m] || "https://via.placeholder.com/300x450?text=No+Image"}
+                      src={
+                        moviePosters[m] ||
+                        "https://via.placeholder.com/300x450?text=No+Image"
+                      }
                       alt={m}
                       loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
-                  <p className="mt-3 text-gray-300 text-sm font-medium truncate px-2 group-hover:text-white transition-colors duration-300">{m}</p>
+                  <p className="mt-3 text-gray-300 text-sm font-medium truncate px-2 group-hover:text-white transition-colors duration-300">
+                    {m}
+                  </p>
                 </motion.div>
               ))}
             </div>
           </div>
         )}
       </div>
+
     </div>
   );
 };
