@@ -28,7 +28,7 @@ function App() {
         </div>
       </nav>
 
-      {/* Main content */}
+      {/* Main content */}  
       <main className="flex-grow h-full flex items-center justify-center relative">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-900/20 via-transparent to-transparent pointer-events-none" />
         <Home />

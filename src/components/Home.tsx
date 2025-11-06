@@ -62,7 +62,7 @@ const Home = () => {
 
   useEffect(() => {
     fetchMovies();
-    document.title = "My Next Movie 🎬";
+    document.title = "My Next Movie";
     // eslint-disable-next-line
   }, []);
 
@@ -74,7 +74,7 @@ const Home = () => {
   const loadMovieOptions = async (inputValue: string): Promise<MovieOption[]> => {
     if (!inputValue) return defaultMovieOptions;
     try {
-      const res = await fetch(`http://localhost:8000/movies/search?q=${encodeURIComponent(inputValue)}`);
+      const res = await fetch(`/movies/search?q=${encodeURIComponent(inputValue)}`);
       const data: string[] = await res.json();
       if (!Array.isArray(data) || data.length === 0) return defaultMovieOptions;
       return data.map((title) => ({ label: title, value: title }));
@@ -87,7 +87,7 @@ const Home = () => {
     if (!selectedMovie) return;
     try {
       const res = await fetch(
-        `http://localhost:8000/recommend/${encodeURIComponent(selectedMovie.value)}`
+        `/recommend/${encodeURIComponent(selectedMovie.value)}`
       );
       const data = await res.json();
       setRecommendations(Array.isArray(data.recommendations) ? data.recommendations : []);
