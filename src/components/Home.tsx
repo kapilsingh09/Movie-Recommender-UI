@@ -98,10 +98,10 @@ const Home = () => {
   };
 
   return (
-    <div className="h-[82vh] w-full flex flex-col items-center justify-center  rounded-2xl  shadow-lg p-6">
-      <div className="bg-zinc-900 rounded-2xl shadow-lg p-6 w-full max-w-2xl border border-gray-500">
-        <h1 className="text-4xl font-bold text-white mb-3 text-center">
-          Welcome to <span className="text-red-400">What will be, My Next Movie</span>
+    <div className="h-[82vh] w-full min-h-screen flex flex-col items-center justify-center p-6">
+      <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl shadow-2xl p-8 w-full max-w-2xl border border-zinc-700/50 backdrop-blur-sm">
+        <h1 className="text-4xl font-bold text-white mb-6 text-center leading-tight">
+          Welcome to <span className="bg-gradient-to-r from-red-500 to-red-400 bg-clip-text text-transparent">What will be, My Next Movie</span>
         </h1>
 
         <AsyncSelect
@@ -110,15 +110,18 @@ const Home = () => {
           loadOptions={loadMovieOptions}
           onChange={(v) => setSelectedMovie(v as MovieOption)}
           placeholder="🔍 Search or select a movie..."
-          className="mb-4 text-gray-900"
+          className="mb-6"
           styles={{
             control: (base) => ({
               ...base,
-              borderRadius: "0.85rem",
-              borderColor: "#ef4444",
-              padding: "10px",
-              backgroundColor: "#18181b",
-              color: "#f3f4f6"
+              borderRadius: "1rem",
+              borderColor: "transparent",
+              padding: "8px",
+              backgroundColor: "rgba(24, 24, 27, 0.8)",
+              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+              "&:hover": {
+                borderColor: "#ef4444"
+              }
             }),
             singleValue: (base) => ({
               ...base,
@@ -130,12 +133,22 @@ const Home = () => {
             }),
             menu: (base) => ({
               ...base,
-              backgroundColor: "#27272a"
+              backgroundColor: "rgba(39, 39, 42, 0.95)",
+              backdropFilter: "blur(8px)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: "0.75rem",
+              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
             }),
             option: (base, state) => ({
               ...base,
               color: state.isSelected ? "#fff" : "#f3f4f6",
-              backgroundColor: state.isSelected ? "#b91c1c" : (state.isFocused ? "#27272a" : "inherit")
+              backgroundColor: state.isSelected ? "#dc2626" : 
+                (state.isFocused ? "rgba(239, 68, 68, 0.1)" : "transparent"),
+              transition: "all 0.2s ease",
+              cursor: "pointer",
+              "&:active": {
+                backgroundColor: "#dc2626"
+              }
             }),
           }}
           isClearable
@@ -144,33 +157,36 @@ const Home = () => {
         <button
           onClick={handleRecommend}
           disabled={!selectedMovie}
-          className="w-full bg-red-500 text-white py-4 rounded-2xl hover:bg-red-600 transition font-semibold disabled:opacity-50 mt-2"
+          className="w-full bg-gradient-to-r from-red-600 to-red-500 text-white py-4 rounded-xl hover:from-red-500 hover:to-red-600 transition-all duration-300 font-semibold disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-red-600 disabled:hover:to-red-500 mt-2 shadow-lg shadow-red-500/20"
         >
-           Get Recommendations
+          {!selectedMovie ? "Select a movie first" : "Get Recommendations"}
         </button>
 
         {recommendations.length > 0 && (
-          <div className="mt-6 bg-zinc-800 border border-gray-700 rounded-lg p-4">
-            <h2 className="text-lg font-semibold text-white mb-4">
+          <div className="mt-8 bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-6">
               Recommended for:{" "}
-              <span className="text-red-400">{selectedMovie ? selectedMovie.label : ""}</span>
+              <span className="text-red-400 font-bold">{selectedMovie ? selectedMovie.label : ""}</span>
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
               {recommendations.map((m, i) => (
                 <motion.div
                   key={i}
-                  className="text-center"
+                  className="group relative text-center overflow-hidden"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
                 >
-                  <img
-                    src={moviePosters[m] || "https://via.placeholder.com/300x450?text=No+Image"}
-                    alt={m}
-                    loading="lazy"
-                    className="w-full h-60 object-contain rounded-md mb-2 bg-zinc-900 border border-zinc-700"
-                  />
-                  <p className="text-gray-300 text-sm">{m}</p>
+                  <div className="aspect-[2/3] relative overflow-hidden rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                    <img
+                      src={moviePosters[m] || "https://via.placeholder.com/300x450?text=No+Image"}
+                      alt={m}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
+                  <p className="mt-3 text-gray-300 text-sm font-medium truncate px-2 group-hover:text-white transition-colors duration-300">{m}</p>
                 </motion.div>
               ))}
             </div>
